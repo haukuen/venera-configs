@@ -2,14 +2,14 @@ class Wnacg extends ComicSource {
   // Note: The fields which are marked as [Optional] should be removed if not used
 
   // name of the source
-  name = "紳士漫畫";
+  name = "紳士漫畫"
 
   // unique id of the source
-  key = "wnacg";
+  key = "wnacg"
 
-  version = "1.0.4";
+  version = "1.0.7"
 
-  minAppVersion = "1.0.0";
+  minAppVersion = "1.0.0"
 
   // update url
   url = "https://cdn.jsdelivr.net/gh/haukuen/venera-configs@main/wnacg.js";
@@ -17,29 +17,29 @@ class Wnacg extends ComicSource {
   static domains = [];
 
   get baseUrl() {
-    let selection = this.loadSetting("domainSelection");
-    if (selection === undefined || selection === null) selection = 0;
-    selection = parseInt(selection);
+    let selection = this.loadSetting('domainSelection')
+    if (selection === undefined || selection === null) selection = 0
+    selection = parseInt(selection)
 
     if (selection === 0) {
       // 选择自定义域名
-      let domain0 = this.loadSetting("domain0");
-      if (!domain0 || domain0.trim() === "") {
-        throw "Custom domain is not set";
+      let domain0 = this.loadSetting('domain0')
+      if (!domain0 || domain0.trim() === '') {
+        throw 'Custom domain is not set'
       }
-      return `https://${domain0.trim()}`;
+      return `https://${domain0.trim()}`
     } else {
       // 选择获取的域名 (Domain 1-3)
-      let index = selection - 1;
+      let index = selection - 1
       if (index >= Wnacg.domains.length) {
-        throw "Selected domain is unavailable";
+        throw 'Selected domain is unavailable'
       }
-      return `https://${Wnacg.domains[index]}`;
+      return `https://${Wnacg.domains[index]}`
     }
   }
 
   overwriteDomains(domains) {
-    if (domains.length != 0) Wnacg.domains = domains;
+    if (domains.length != 0) Wnacg.domains = domains
   }
 
   // [Optional] account related
@@ -54,34 +54,33 @@ class Wnacg extends ComicSource {
       let res = await Network.post(
         `${this.baseUrl}/users-check_login.html`,
         {
-          "content-type": "application/x-www-form-urlencoded",
+          'content-type': 'application/x-www-form-urlencoded'
         },
-        `login_name=${encodeURIComponent(account)}&login_pass=${encodeURIComponent(pwd)}`,
-      );
+        `login_name=${encodeURIComponent(account)}&login_pass=${encodeURIComponent(pwd)}`
+      )
       if (res.status !== 200) {
-        throw "Login failed";
+        throw 'Login failed'
       }
-      let json = JSON.parse(res.body);
-      if (json["html"].includes("登錄成功")) {
-        return "ok";
+      let json = JSON.parse(res.body)
+      if (json['html'].includes('登錄成功')) {
+        return 'ok'
       }
-      throw "Login failed";
+      throw 'Login failed'
     },
 
     /**
      * logout function, clear account related data
      */
     logout: () => {
-      Network.deleteCookies(this.baseUrl);
+      Network.deleteCookies(this.baseUrl)
     },
 
     // {string?} - register url
-    registerWebsite: null,
-  };
+    registerWebsite: null
+  }
 
   async init() {
-    if (this.loadSetting("refreshDomainsOnStart"))
-      await this.refreshDomains(false);
+    if (this.loadSetting('refreshDomainsOnStart')) await this.refreshDomains(false)
   }
 
   /**
@@ -89,95 +88,98 @@ class Wnacg extends ComicSource {
    * @param showConfirmDialog {boolean}
    */
   async refreshDomains(showConfirmDialog) {
-    let url = "https://wn01.link/";
-    let title = "";
-    let message = "";
-    let domains = [];
+    let url = "https://wn01.link/"
+    let title = ""
+    let message = ""
+    let domains = []
 
     try {
-      let res = await fetch(url);
+      let res = await fetch(url)
       if (res.status == 200) {
-        let html = await res.text();
-        let document = new HtmlDocument(html);
+        let html = await res.text()
+        let document = new HtmlDocument(html)
         // 提取所有链接
-        let links = document.querySelectorAll("a[href]");
-        let seenDomains = new Set();
+        let links = document.querySelectorAll("a[href]")
+        let seenDomains = new Set()
 
         for (let link of links) {
-          let href = link.attributes["href"];
-          if (!href) continue;
+          let href = link.attributes["href"]
+          if (!href) continue
 
           // 提取域名（支持 http:// 和 https://）
-          let match = href.match(/^https?:\/\/([^\/]+)/);
+          let match = href.match(/^https?:\/\/([^\/]+)/)
           if (match) {
-            let domain = match[1];
+            let domain = match[1]
             // 只提取有效的域名，排除 wn01.link 自身和其他无关链接
-            if (
-              domain &&
+            if (domain &&
               domain.includes(".") &&
               !domain.includes("wn01.link") &&
               !domain.includes("google.cn") &&
               !domain.includes("cdn-cgi") &&
-              !seenDomains.has(domain)
-            ) {
-              domains.push(domain);
-              seenDomains.add(domain);
+              !seenDomains.has(domain)) {
+              domains.push(domain)
+              seenDomains.add(domain)
             }
           }
         }
-        document.dispose();
+        document.dispose()
 
         if (domains.length > 0) {
-          title = "Update Success";
-          message = "New domains:\n\n";
+          title = "Update Success"
+          message = "Fetched: \n\n"
         }
       }
     } catch (e) {
-      // 获取失败，使用内置域名
+      // 获取失败，使用自定义域名
     }
 
     if (domains.length == 0) {
-      title = "Update Failed";
-      message = `Using built-in domains:\n\n`;
-      domains = Wnacg.domains;
+      title = "Update Failed"
+      message = "Using Custom: \n\n"
+      domains = Wnacg.domains
     }
 
     for (let i = 0; i < domains.length; i++) {
-      message = message + `Fetched Domain ${i + 1}: ${domains[i]}\n`;
+      message = message + `URL ${i + 1}: ${domains[i]}\n`
     }
-    message = message + `\nTotal: ${domains.length} domain(s)`;
+    message = message + `\n Total: ${domains.length} URLs\n\n Re-enter page to refresh`
 
     if (showConfirmDialog) {
-      UI.showDialog(title, message, [
-        {
-          text: "Cancel",
-          callback: () => {},
-        },
-        {
-          text: "Apply",
-          callback: () => this.overwriteDomains(domains),
-        },
-      ]);
+      UI.showDialog(
+        title,
+        message,
+        [
+          {
+            text: "Cancel",
+            callback: () => { }
+          },
+          {
+            text: "Apply",
+            callback: () => this.overwriteDomains(domains)
+          }
+        ]
+      )
     } else {
-      this.overwriteDomains(domains);
+      this.overwriteDomains(domains)
     }
   }
 
   parseComic(c) {
     let link = c.querySelector("div.pic_box > a").attributes["href"];
     let id = RegExp("(?<=-aid-)[0-9]+").exec(link)[0];
-    let image = c.querySelector("div.pic_box > a > img").attributes["src"];
+    let image =
+      c.querySelector("div.pic_box > a > img").attributes["src"];
     image = `https:${image}`;
     let name = c.querySelector("div.info > div.title > a").text;
     let info = c.querySelector("div.info > div.info_col").text.trim();
-    info = info.replaceAll("\n", "");
-    info = info.replaceAll("\t", "");
+    info = info.replaceAll('\n', '');
+    info = info.replaceAll('\t', '');
     return new Comic({
       id: id,
       title: name,
       cover: image,
       description: info,
-    });
+    })
   }
 
   // explore page list
@@ -199,42 +201,37 @@ class Wnacg extends ComicSource {
        * - for `mixed` type, use param `page` as index. for each index(0-based), return {data: [], maxPage: number?}, data is an array contains Comic[] or {title: string, comics: Comic[], viewMore: string?}
        */
       load: async (page) => {
-        let res = await Network.get(this.baseUrl, {});
+        let res = await Network.get(this.baseUrl, {})
         if (res.status !== 200) {
-          throw `Invalid Status Code ${res.status}`;
+          throw `Invalid Status Code ${res.status}`
         }
-        let document = new HtmlDocument(res.body);
+        let document = new HtmlDocument(res.body)
         let titleBlocks = document.querySelectorAll("div.title_sort");
         let comicBlocks = document.querySelectorAll("div.bodywrap");
         if (titleBlocks.length !== comicBlocks.length) {
-          throw "Invalid Page";
+          throw "Invalid Page"
         }
-        let result = [];
+        let result = []
         for (let i = 0; i < titleBlocks.length; i++) {
-          let title = titleBlocks[i]
-            .querySelector("div.title_h2")
-            .text.replaceAll(/\s+/g, "");
-          let link =
-            titleBlocks[i].querySelector("div.r > a").attributes["href"];
-          let comics = [];
-          let comicBlock = comicBlocks[i];
-          let comicElements = comicBlock.querySelectorAll(
-            "div.gallary_wrap > ul.cc > li",
-          );
+          let title = titleBlocks[i].querySelector("div.title_h2").text.replaceAll(/\s+/g, '')
+          let link = titleBlocks[i].querySelector("div.r > a").attributes["href"]
+          let comics = []
+          let comicBlock = comicBlocks[i]
+          let comicElements = comicBlock.querySelectorAll("div.gallary_wrap > ul.cc > li")
           for (let comicElement of comicElements) {
-            comics.push(this.parseComic(comicElement));
+            comics.push(this.parseComic(comicElement))
           }
           result.push({
             title: title,
             comics: comics,
-            viewMore: `category:${title}@${link}`,
-          });
+            viewMore: `category:${title}@${link}`
+          })
         }
-        document.dispose();
-        return result;
-      },
-    },
-  ];
+        document.dispose()
+        return result
+      }
+    }
+  ]
 
   // categories
   category = {
@@ -276,15 +273,7 @@ class Wnacg extends ComicSource {
         // number of comics to display at the same time
         // randomNumber: 5,
 
-        categories: [
-          "同人誌",
-          "漢化",
-          "日語",
-          "English",
-          "CG畫集",
-          "3D漫畫",
-          "寫真Cosplay",
-        ],
+        categories: ["同人誌", "漢化", "日語", "English", "CG畫集", "3D漫畫", "寫真Cosplay"],
 
         // category or search
         // if `category`, use categoryComics.load to load comics
@@ -316,7 +305,7 @@ class Wnacg extends ComicSource {
         // number of comics to display at the same time
         // randomNumber: 5,
 
-        categories: ["單行本", "漢化", "日語", "English"],
+        categories: ["單行本", "漢化", "日語", "English",],
 
         // category or search
         // if `category`, use categoryComics.load to load comics
@@ -345,7 +334,7 @@ class Wnacg extends ComicSource {
         // number of comics to display at the same time
         // randomNumber: 5,
 
-        categories: ["雜誌短篇", "漢化", "日語", "English"],
+        categories: ["雜誌短篇", "漢化", "日語", "English",],
 
         // category or search
         // if `category`, use categoryComics.load to load comics
@@ -374,7 +363,7 @@ class Wnacg extends ComicSource {
         // number of comics to display at the same time
         // randomNumber: 5,
 
-        categories: ["韓漫", "漢化", "生肉"],
+        categories: ["韓漫", "漢化", "生肉",],
 
         // category or search
         // if `category`, use categoryComics.load to load comics
@@ -394,7 +383,7 @@ class Wnacg extends ComicSource {
     ],
     // enable ranking page
     enableRankingPage: true,
-  };
+  }
 
   /// category comic loading related
   categoryComics = {
@@ -407,7 +396,7 @@ class Wnacg extends ComicSource {
      * @returns {Promise<{comics: Comic[], maxPage: number}>}
      */
     load: async (category, param, options, page) => {
-      let url = this.baseUrl + param;
+      let url = this.baseUrl + param
       if (page !== 0) {
         if (!url.includes("-")) {
           url = url.replaceAll(".html", "-.html");
@@ -418,62 +407,62 @@ class Wnacg extends ComicSource {
         url = `${lr[0]}albums-${lr[1]}`;
       }
 
-      let res = await Network.get(url, {});
+      let res = await Network.get(url, {})
       if (res.status !== 200) {
-        throw `Invalid Status Code ${res.status}`;
+        throw `Invalid Status Code ${res.status}`
       }
-      let document = new HtmlDocument(res.body);
-      let comicElements = document.querySelectorAll(
-        "div.grid div.gallary_wrap > ul.cc > li",
-      );
-      let comics = [];
+      let document = new HtmlDocument(res.body)
+      let comicElements = document.querySelectorAll("div.grid div.gallary_wrap > ul.cc > li")
+      let comics = []
       for (let comicElement of comicElements) {
-        comics.push(this.parseComic(comicElement));
+        comics.push(this.parseComic(comicElement))
       }
       let pagesLink = document.querySelectorAll("div.f_left.paginator > a");
-      let pages = Number(pagesLink[pagesLink.length - 1].text);
-      document.dispose();
+      let pages = Number(pagesLink[pagesLink.length - 1].text)
+      document.dispose()
       return {
         comics: comics,
         maxPage: pages,
-      };
+      }
     },
     ranking: {
-      options: ["day-Day", "week-Week", "month-Month"],
+      options: [
+        "day-Day",
+        "week-Week",
+        "month-Month",
+      ],
       load: async (option, page) => {
-        let url = `${this.baseUrl}/albums-favorite_ranking-type-${option}.html`;
+        let url = `${this.baseUrl}/albums-favorite_ranking-type-${option}.html`
         if (page !== 0) {
-          url = `${this.baseUrl}/albums-favorite_ranking-page-${page}-type-${option}.html`;
+          url = `${this.baseUrl}/albums-favorite_ranking-page-${page}-type-${option}.html`
         }
 
-        let res = await Network.get(url, {});
+        let res = await Network.get(url, {})
         if (res.status !== 200) {
-          throw `Invalid Status Code ${res.status}`;
+          throw `Invalid Status Code ${res.status}`
         }
 
-        let document = new HtmlDocument(res.body);
-        let comicElements = document.querySelectorAll(
-          "div.grid div.gallary_wrap > ul.cc > li",
-        );
-        let comics = [];
+        let document = new HtmlDocument(res.body)
+        let comicElements = document.querySelectorAll("div.grid div.gallary_wrap > ul.cc > li")
+        let comics = []
         for (let comicElement of comicElements) {
-          comics.push(this.parseComic(comicElement));
+          comics.push(this.parseComic(comicElement))
         }
 
-        let pagesLink = document.querySelectorAll("div.f_left.paginator > a");
-        let pages = 1;
+        let pagesLink = document.querySelectorAll("div.f_left.paginator > a")
+        let pages = 1
         if (pagesLink.length > 0) {
-          pages = Number(pagesLink[pagesLink.length - 1].text);
+          pages = Number(pagesLink[pagesLink.length - 1].text)
         }
 
-        document.dispose();
+        document.dispose()
         return {
           comics: comics,
           maxPage: pages,
-        };
-      },
-    },
-  };
+        }
+      }
+    }
+  }
 
   /// search related
   search = {
@@ -485,34 +474,30 @@ class Wnacg extends ComicSource {
      * @returns {Promise<{comics: Comic[], maxPage: number}>}
      */
     load: async (keyword, options, page) => {
-      let url = `${this.baseUrl}/search/?q=${encodeURIComponent(keyword)}&f=_all&s=create_time_DESC&syn=yes`;
+      let url = `${this.baseUrl}/search/?q=${encodeURIComponent(keyword)}&f=_all&s=create_time_DESC&syn=yes`
       if (page !== 0) {
-        url += `&p=${page}`;
+        url += `&p=${page}`
       }
-      let res = await Network.get(url, {});
+      let res = await Network.get(url, {})
       if (res.status !== 200) {
-        throw `Invalid Status Code ${res.status}`;
+        throw `Invalid Status Code ${res.status}`
       }
-      let document = new HtmlDocument(res.body);
-      let comicElements = document.querySelectorAll(
-        "div.grid div.gallary_wrap > ul.cc > li",
-      );
-      let comics = [];
+      let document = new HtmlDocument(res.body)
+      let comicElements = document.querySelectorAll("div.grid div.gallary_wrap > ul.cc > li")
+      let comics = []
       for (let comicElement of comicElements) {
-        comics.push(this.parseComic(comicElement));
+        comics.push(this.parseComic(comicElement))
       }
-      let total = document
-        .querySelectorAll("p.result > b")[0]
-        .text.replaceAll(",", "");
-      const comicsPerPage = 24;
-      let pages = Math.ceil(Number(total) / comicsPerPage);
-      document.dispose();
+      let total = document.querySelectorAll("p.result > b")[0].text.replaceAll(',', '')
+      const comicsPerPage = 24
+      let pages = Math.ceil(Number(total) / comicsPerPage)
+      document.dispose()
       return {
         comics: comics,
         maxPage: pages,
-      };
+      }
     },
-  };
+  }
 
   // favorite related
   favorites = {
@@ -530,26 +515,19 @@ class Wnacg extends ComicSource {
      */
     addOrDelFavorite: async (comicId, folderId, isAdding, favoriteId) => {
       if (!isAdding) {
-        let res = await Network.get(
-          `${this.baseUrl}/users-fav_del-id-${favoriteId}.html?ajax=true&_t=${randomDouble(0, 1)}`,
-          {},
-        );
+        let res = await Network.get(`${this.baseUrl}/users-fav_del-id-${favoriteId}.html?ajax=true&_t=${randomDouble(0, 1)}`, {})
         if (res.status !== 200) {
-          throw "Delete failed";
+          throw 'Delete failed'
         }
       } else {
-        let res = await Network.post(
-          `${this.baseUrl}/users-save_fav-id-${comicId}.html`,
-          {
-            "content-type": "application/x-www-form-urlencoded",
-          },
-          `favc_id=${folderId}`,
-        );
+        let res = await Network.post(`${this.baseUrl}/users-save_fav-id-${comicId}.html`, {
+          'content-type': 'application/x-www-form-urlencoded'
+        }, `favc_id=${folderId}`)
         if (res.status !== 200) {
-          throw "Delete failed";
+          throw 'Delete failed'
         }
       }
-      return "ok";
+      return 'ok'
     },
     /**
      * load favorite folders.
@@ -559,23 +537,20 @@ class Wnacg extends ComicSource {
      * @returns {Promise<{folders: {[p: string]: string}, favorited: string[]}>} - `folders` is a map of folder id to folder name, `favorited` is a list of folder id which contains the comic
      */
     loadFolders: async (comicId) => {
-      let res = await Network.get(
-        `${this.baseUrl}/users-addfav-id-210814.html`,
-        {},
-      );
+      let res = await Network.get(`${this.baseUrl}/users-addfav-id-210814.html`, {})
       if (res.status !== 200) {
-        throw "Load failed";
+        throw 'Load failed'
       }
-      let document = new HtmlDocument(res.body);
-      let data = {};
-      document.querySelectorAll("option").forEach((option) => {
-        if (option.attributes["value"] === "") return;
-        data[option.attributes["value"]] = option.text;
-      });
+      let document = new HtmlDocument(res.body)
+      let data = {}
+      document.querySelectorAll("option").forEach((option => {
+        if (option.attributes["value"] === "") return
+        data[option.attributes["value"]] = option.text
+      }))
       return {
         folders: data,
-        favorited: [],
-      };
+        favorited: []
+      }
     },
     /**
      * add a folder
@@ -583,17 +558,13 @@ class Wnacg extends ComicSource {
      * @returns {Promise<any>} - return any value to indicate success
      */
     addFolder: async (name) => {
-      let res = await Network.post(
-        `${this.baseUrl}/users-favc_save-id.html`,
-        {
-          "content-type": "application/x-www-form-urlencoded",
-        },
-        `favc_name=${encodeURIComponent(name)}`,
-      );
+      let res = await Network.post(`${this.baseUrl}/users-favc_save-id.html`, {
+        'content-type': 'application/x-www-form-urlencoded'
+      }, `favc_name=${encodeURIComponent(name)}`)
       if (res.status !== 200) {
-        throw "Add failed";
+        throw 'Add failed'
       }
-      return "ok";
+      return 'ok'
     },
     /**
      * delete a folder
@@ -601,14 +572,11 @@ class Wnacg extends ComicSource {
      * @returns {Promise<void>} - return any value to indicate success
      */
     deleteFolder: async (folderId) => {
-      let res = await Network.get(
-        `${this.baseUrl}/users-favclass_del-id-${folderId}.html?ajax=true&_t=${randomDouble()}`,
-        {},
-      );
+      let res = await Network.get(`${this.baseUrl}/users-favclass_del-id-${folderId}.html?ajax=true&_t=${randomDouble()}`, {})
       if (res.status !== 200) {
-        throw "Delete failed";
+        throw 'Delete failed'
       }
-      return "ok";
+      return 'ok'
     },
     /**
      * load comics in a folder
@@ -618,54 +586,42 @@ class Wnacg extends ComicSource {
      * @returns {Promise<{comics: Comic[], maxPage: number}>}
      */
     loadComics: async (page, folder) => {
-      let url = `${this.baseUrl}/users-users_fav-page-${page}-c-${folder}.html.html`;
-      let res = await Network.get(url, {});
+      let url = `${this.baseUrl}/users-users_fav-page-${page}-c-${folder}.html.html`
+      let res = await Network.get(url, {})
       if (res.status !== 200) {
-        throw `Invalid Status Code ${res.status}`;
+        throw `Invalid Status Code ${res.status}`
       }
-      let document = new HtmlDocument(res.body);
-      let comicBlocks = document.querySelectorAll("div.asTB");
+      let document = new HtmlDocument(res.body)
+      let comicBlocks = document.querySelectorAll("div.asTB")
       let comics = comicBlocks.map((comic) => {
-        let cover = comic.querySelector("div.asTBcell.thumb > div > img")
-          .attributes["src"];
-        cover = "https:" + cover;
-        let time = comic
-          .querySelector("div.box_cel.u_listcon > p.l_catg > span")
-          .text.replaceAll("創建時間：", "");
-        let name = comic.querySelector(
-          "div.box_cel.u_listcon > p.l_title > a",
-        ).text;
-        let link = comic.querySelector("div.box_cel.u_listcon > p.l_title > a")
-          .attributes["href"];
+        let cover = comic.querySelector("div.asTBcell.thumb > div > img").attributes["src"]
+        cover = 'https:' + cover
+        let time = comic.querySelector("div.box_cel.u_listcon > p.l_catg > span").text.replaceAll("創建時間：", "")
+        let name = comic.querySelector("div.box_cel.u_listcon > p.l_title > a").text;
+        let link = comic.querySelector("div.box_cel.u_listcon > p.l_title > a").attributes["href"];
         let id = RegExp("(?<=-aid-)[0-9]+").exec(link)[0];
-        let info = comic.querySelector(
-          "div.box_cel.u_listcon > p.l_detla",
-        ).text;
-        let pages = Number(RegExp("(?<=頁數：)[0-9]+").exec(info)[0]);
-        let delUrl = comic.querySelector("div.box_cel.u_listcon > p.alopt > a")
-          .attributes["onclick"];
+        let delUrl = comic.querySelector("div.box_cel.u_listcon > p.alopt > a").attributes["onclick"];
         let favoriteId = RegExp("(?<=del-id-)[0-9]+").exec(delUrl)[0];
         return new Comic({
           id: id,
           title: name,
           subtitle: time,
           cover: cover,
-          pages: pages,
           favoriteId: favoriteId,
-        });
-      });
-      let pages = 1;
-      let pagesLink = document.querySelectorAll("div.f_left.paginator > a");
+        })
+      })
+      let pages = 1
+      let pagesLink = document.querySelectorAll("div.f_left.paginator > a")
       if (pagesLink.length > 0) {
-        pages = Number(pagesLink[pagesLink.length - 1].text);
+        pages = Number(pagesLink[pagesLink.length - 1].text)
       }
-      document.dispose();
+      document.dispose()
       return {
         comics: comics,
         maxPage: pages,
-      };
-    },
-  };
+      }
+    }
+  }
 
   /// single comic related
   comic = {
@@ -675,47 +631,77 @@ class Wnacg extends ComicSource {
      * @returns {Promise<ComicDetails>}
      */
     loadInfo: async (id) => {
-      let res = await Network.get(
-        `${this.baseUrl}/photos-index-page-1-aid-${id}.html`,
-        {},
-      );
+      // Force a stable chapter order/layout instead of using the website's saved preference.
+      let res = await Network.get(`${this.baseUrl}/photos-index-page-1-aid-${id}.html?order=asc&mode=list`, {})
       if (res.status !== 200) {
-        throw `Invalid Status Code ${res.status}`;
+        throw `Invalid Status Code ${res.status}`
       }
-      let document = new HtmlDocument(res.body);
-      let title = document.querySelector("div.userwrap > h2").text;
-      let cover = document.querySelector(
-        "div.userwrap > div.asTB > div.asTBcell.uwthumb > img",
-      ).attributes["src"];
-      cover = "https:" + cover;
-      cover = cover.substring(0, 6) + cover.substring(8);
-      let labels = document.querySelectorAll("div.asTBcell.uwconn > label");
-      let category = labels[0].text.split("：")[1];
-      let pages = labels[1].text.split("：")[1];
-      let tagsDom = document.querySelectorAll("a.tagshow");
-      let tags = new Map();
-      tags.set("頁數", [pages]);
-      tags.set("分類", [category]);
+      let document = new HtmlDocument(res.body)
+      let title = document.querySelector("div.userwrap > h2").text
+      let cover = document.querySelector("div.userwrap > div.asTB > div.asTBcell.uwthumb > img").attributes["src"]
+      cover = 'https:' + cover
+      cover = cover.substring(0, 6) + cover.substring(8)
+      let labels = document.querySelectorAll("div.asTBcell.uwconn > label")
+      let category = labels[0].text.split("：")[1]
+      let isSeries = document.querySelector("#sr_pub") !== null
+      let tagsDom = document.querySelectorAll("div.asTBcell.uwconn a.tagshow");
+      let tags = new Map()
+      tags.set(isSeries ? "章節" : "頁數", [labels[1].text.split("：")[1]])
+      tags.set("分類", [category])
       if (tagsDom.length > 0) {
-        tags.set(
-          "標籤",
-          tagsDom.map((e) => e.text),
-        );
+        tags.set("標籤", tagsDom.map((e) => e.text))
       }
       let description = document.querySelector("div.asTBcell.uwconn > p").text;
-      let uploader = document.querySelector(
-        "div.asTBcell.uwuinfo > a > p",
-      ).text;
+      let uploader = document.querySelector("div.asTBcell.uwuinfo > a > p").text;
+
+      let chapters
+      if (isSeries) {
+        chapters = new Map()
+        // 章节分页链接已改为 /photos-index-aid-{id}-page-{n}.html，
+        // 总页数优先取 #sr_pub 的 data-total / data-per，缺失时再解析分页器链接
+        let srPub = document.querySelector("#sr_pub")
+        let total = Number(srPub.attributes["data-total"])
+        let per = Number(srPub.attributes["data-per"])
+        let maxPage = (total > 0 && per > 0) ? Math.ceil(total / per) : 0
+        if (maxPage === 0) {
+          for (let link of document.querySelectorAll("div.f_left.paginator a[href]")) {
+            let match = link.attributes["href"].match(/-page-(\d+)/)
+            if (match) maxPage = Math.max(maxPage, Number(match[1]))
+          }
+        }
+        let page = 1
+        try {
+          while (true) {
+            for (let chapter of document.querySelectorAll("a[data-chid]")) {
+              chapters.set(chapter.attributes["data-chid"], chapter.text.trim())
+            }
+            if (page >= maxPage) break
+            page++
+            document.dispose()
+            document = null
+            let chapterRes = await Network.get(`${this.baseUrl}/photos-index-aid-${id}-page-${page}.html?order=asc&mode=list`, {})
+            if (chapterRes.status !== 200) {
+              throw `Invalid Status Code ${chapterRes.status}`
+            }
+            document = new HtmlDocument(chapterRes.body)
+          }
+        } finally {
+          if (document) document.dispose()
+        }
+        if (chapters.size === 0) throw 'Invalid chapter directory'
+      } else {
+        document.dispose()
+      }
 
       return new ComicDetails({
         id: id,
         title: title,
         cover: cover,
-        pages: pages,
+        chapters: chapters,
         tags: tags,
         description: description,
         uploader: uploader,
-      });
+      })
     },
     /**
      * [Optional] load thumbnails of a comic
@@ -724,29 +710,30 @@ class Wnacg extends ComicSource {
      * @returns {Promise<{thumbnails: string[], next: string?}>} - `next` is next page token, null for no more
      */
     loadThumbnails: async (id, next) => {
-      next = next || "1";
-      let res = await Network.get(
-        `${this.baseUrl}/photos-index-page-${next}-aid-${id}.html`,
-        {},
-      );
+      next = next || '1'
+      let res = await Network.get(`${this.baseUrl}/photos-index-page-${next}-aid-${id}.html`, {});
       if (res.status !== 200) {
-        throw `Invalid Status Code ${res.status}`;
+        throw `Invalid Status Code ${res.status}`
       }
-      let document = new HtmlDocument(res.body);
-      let thumbnails = document
-        .querySelectorAll("div.pic_box.tb > a > img")
-        .map((e) => {
-          return "https:" + e.attributes["src"];
-        });
-      next = (Number(next) + 1).toString();
-      let pagesLink = document.querySelector("div.f_left.paginator").children;
-      if (pagesLink[pagesLink.length - 1].classNames.includes("thispage")) {
-        next = null;
+      let document = new HtmlDocument(res.body)
+      if (document.querySelector("#sr_pub")) {
+        document.dispose()
+        return { thumbnails: [], next: null }
       }
+      let thumbnails = document.querySelectorAll("div.pic_box.tb > a > img").map((e) => {
+        return 'https:' + e.attributes["src"]
+      })
+      next = (Number(next) + 1).toString()
+      let paginator = document.querySelector("div.f_left.paginator")
+      let pagesLink = paginator ? paginator.children : []
+      if (pagesLink.length === 0 || pagesLink[pagesLink.length - 1].classNames.includes("thispage")) {
+        next = null
+      }
+      document.dispose()
       return {
         thumbnails: thumbnails,
-        next: next,
-      };
+        next: next
+      }
     },
     /**
      * load images of a chapter
@@ -755,20 +742,15 @@ class Wnacg extends ComicSource {
      * @returns {Promise<{images: string[]}>}
      */
     loadEp: async (comicId, epId) => {
-      let res = await Network.get(
-        `${this.baseUrl}/photos-gallery-aid-${comicId}.html`,
-        {},
-      );
+      let res = await Network.get(`${this.baseUrl}/photos-gallery-aid-${epId || comicId}.html`, {})
       if (res.status !== 200) {
-        throw `Invalid Status Code ${res.status}`;
+        throw `Invalid Status Code ${res.status}`
       }
-      const regex = RegExp(String.raw`//[^"]+/[^"]+\.[^"]+`, "g");
+      const regex = RegExp(String.raw`//[^"]+/[^"]+\.[^"]+`, 'g');
       const matches = Array.from(res.body.matchAll(regex));
       return {
-        images: matches.map(
-          (e) => "https:" + e[0].substring(0, e[0].length - 1),
-        ),
-      };
+        images: matches.map((e) => 'https:' + e[0].substring(0, e[0].length - 1))
+      }
     },
     /**
      * [Optional] Handle tag click event
@@ -778,67 +760,73 @@ class Wnacg extends ComicSource {
      */
     onClickTag: (namespace, tag) => {
       return {
-        action: "search",
+        action: 'search',
         keyword: tag,
-      };
+      }
     },
-  };
+  }
 
-  settings = {
-    refreshDomains: {
-      title: "Refresh Domain List",
-      type: "callback",
-      buttonText: "Refresh",
-      callback: () => this.refreshDomains(true),
-    },
-    refreshDomainsOnStart: {
-      title: "Refresh Domain List on Startup",
-      type: "switch",
-      default: true,
-    },
-    domainSelection: {
-      title: "Domain Selection",
-      type: "select",
-      options: [
-        { value: "0", text: "Custom Domain" },
-        { value: "1", text: "Domain 1" },
-        { value: "2", text: "Domain 2" },
-        { value: "3", text: "Domain 3" },
-      ],
-      default: "0",
-    },
-    domain0: {
-      title: "Custom Domain",
-      type: "input",
-      validator: String.raw`^(?!:\/\/)(?=.{1,253})([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$`,
-      default: "wnacg.com",
-    },
-  };
+  get settings() {
+    // 动态生成选项，总是保留 Custom Domain (0)，然后根据 Wnacg.domains 数量添加选项
+    let domainOptions = [{ value: '0', text: 'Custom Domain' }]
+    for (let i = 0; i < Wnacg.domains.length; i++) {
+      domainOptions.push({
+        value: String(i + 1),
+        text: Wnacg.domains[i]
+      })
+    }
+
+    return {
+      refreshDomains: {
+        title: "Refresh Domain List",
+        type: "callback",
+        buttonText: "Refresh",
+        callback: () => this.refreshDomains(true)
+      },
+      refreshDomainsOnStart: {
+        title: "Refresh Domain List on Startup",
+        type: "switch",
+        default: true,
+      },
+      domainSelection: {
+        title: "Domain Selection",
+        type: "select",
+        options: domainOptions,
+        default: "0",
+      },
+      domain0: {
+        title: "Custom Domain",
+        type: "input",
+        validator: String.raw`^(?!:\/\/)(?=.{1,253})([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$`,
+        default: 'wnacg.com',
+      },
+    }
+  }
 
   translation = {
-    zh_CN: {
-      "Refresh Domain List": "刷新域名列表",
-      Refresh: "刷新",
-      "Refresh Domain List on Startup": "启动时刷新域名列表",
-      "Domain Selection": "域名选择",
-      "Custom Domain": "自定义域名",
-      "Custom domain is not set": "未设置自定义域名",
-      "Selected domain is unavailable": "所选域名不可用，请先刷新域名列表",
-      Day: "日",
-      Week: "周",
-      Month: "月",
+    'zh_CN': {
+      'Refresh Domain List': '刷新域名列表',
+      'Refresh': '刷新',
+      'Refresh Domain List on Startup': '启动时刷新域名列表',
+      'Domain Selection': '域名选择',
+      'Custom Domain': '自定义域名',
+      'Custom domain is not set': '未设置自定义域名',
+      'Selected domain is unavailable': '所选域名不可用，请先刷新域名列表',
+      'Day': '日',
+      'Week': '周',
+      'Month': '月',
     },
-    zh_TW: {
-      "Refresh Domain List": "刷新域名列表",
-      Refresh: "刷新",
-      "Refresh Domain List on Startup": "啟動時刷新域名列表",
-      "Domain Selection": "域名選擇",
-      "Custom Domain": "自定義域名",
-      "Custom domain is not set": "未設置自定義域名",
-      "Selected domain is unavailable": "所選域名不可用，請先刷新域名列表",
-      Day: "日",
-      Week: "周",
-      Month: "月",
+    'zh_TW': {
+      'Refresh Domain List': '刷新域名列表',
+      'Refresh': '刷新',
+      'Refresh Domain List on Startup': '啟動時刷新域名列表',
+      'Domain Selection': '域名選擇',
+      'Custom Domain': '自定義域名',
+      'Custom domain is not set': '未設置自定義域名',
+      'Selected domain is unavailable': '所選域名不可用，請先刷新域名列表',
+      'Day': '日',
+      'Week': '周',
+      'Month': '月',
     },
-  };
+  }
 }
